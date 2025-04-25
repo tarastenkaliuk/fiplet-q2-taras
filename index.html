@@ -1,198 +1,224 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
-<html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
+  <title>RSS Feed Viewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>JSFiddle gq26t83k</title>
+
+  <!-- Styles -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
+    .visually-hidden {
+      display: none;
+    }
+
     .card-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  overflow: hidden;
-}
+      display: -webkit-box;
+      max-height: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 4;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card-text {}
   </style>
-
-  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-migrate/1.2.1/jquery-migrate.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/jfhovinne/jFeed@0d411f761c26013fb8f960d5a0a20f848706fdc5/build/dist/jquery.jfeed.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 </head>
+
 <body>
-  <section class="py-5 text-center container">
-  <div class="row py-lg-5">
-    <div class="col-lg-6 col-md-8 mx-auto">
-      <h1 class="fw-light">RSS feeds</h1>
-      <p class="lead text-muted">Click to load feed</p>
-      <div class="btn-group">
-        <a href="#" class="btn btn-outline-secondary" data-url="https://feeds.bbci.co.uk/news/rss.xml">BBC News</a>
-        <a href="#" class="btn btn-outline-secondary" data-url="https://www.buzzfeed.com/uk/index.xml">Buzzfeed</a>
-        <a href="#" class="btn btn-primary" data-url="https://fliplet.com/feed">Fliplet</a>
-        <a href="#" class="btn btn-outline-secondary" data-url="https://www.ft.com/news-feed">FT</a>
+  <div class="container py-4">
+    <h1 class="text-center mb-4">RSS Feed Viewer</h1>
+    <div class="d-flex justify-content-center mb-3">
+      <div class="btn-group" id="feed-buttons">
+        <button class="btn btn-outline-secondary" data-url="https://feeds.bbci.co.uk/news/rss.xml">BBC News</button>
+        <button class="btn btn-outline-secondary" data-url="https://www.buzzfeed.com/uk/index.xml">Buzzfeed</button>
+        <button class="btn btn-outline-secondary" data-url="https://fliplet.com/feed">Fliplet</button>
+        <button class="btn btn-outline-secondary" data-url="https://www.ft.com/news-feed">FT</button>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- Pagination -->
-<section class="py-5 text-center container">
-  <div class="row py-lg-5">
-    <nav>
-      <ul class="pagination">
-        <li class="page-item disabled">
-          <a class="page-link">Previous</a>
-        </li>
-        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-        <li class="page-item">
-          <a class="page-link" href="#">2</a>
-        </li>
-        <li class="page-item"><a class="page-link" href="#">3</a></li>
-        <li class="page-item">
-          <a class="page-link" href="#">Next</a>
-        </li>
-      </ul>
-    </nav>    
-  </div>
-</section>
+    <!-- Alerts -->
+    <div id="loading" class="alert alert-info visually-hidden text-center">Loading...</div>
+    <div id="error" class="alert alert-danger visually-hidden text-center">
+      Unable to load feed. <br>
+      <small><a id="error-link" href="#" target="_blank">Open feed in new tab</a></small>
+    </div>
 
-<div class="container">
-  <!-- Loading state UI -->
-  <div class="alert alert-secondary visually-hidden">Loading...</div>
+    <!-- Feed Container -->
+    <div id="feed-container" class="row row-cols-1 row-cols-md-3 g-4"></div>
+
+    <!-- Pagination -->
+    <nav class="d-flex justify-content-center mt-4">
+      <ul id="pagination" class="pagination"></ul>
+    </nav>
+  </div>
+
+  <!-- Templates -->
+  <script id="feed-template" type="text/x-handlebars-template">
+    {{#each posts}}
+    <div class="col">
+      <div class="card h-100">
+        {{#if image}}
+        <img src="{{image}}" class="card-img-top" alt="Post Image" style="display: block; width: 100%; height: 200px; object-fit: cover; border-radius: 4px;" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x200?text=No+Image';">
+
+        {{/if}}
+        <div class="card-body">
+          <h5 class="card-title">{{title}}</h5>
+          <p class="card-text"><small>{{{description}}}</small></p>
+        </div>
+        <div class="card-footer text-muted d-flex justify-content-between align-items-center">
+          <a href="{{link}}" target="_blank">Read more →</a>
+          <small>{{pubDate}}</small>
+        </div>
+      </div>
+    </div>
+    {{/each}}
+  </script>
+
+  <script id="pagination-template" type="text/x-handlebars-template">
+    {{#if hasPrev}}
+      <li class="page-item">
+        <a class="page-link" href="#" data-page="{{prev}}">Previous</a>
+      </li>
+    {{/if}}
   
-  <!-- Error state UI -->
-  <div class="alert alert-danger visually-hidden">
-    <h5>Unable to load feed</h5>
-    <!-- Show error message, if applicable -->
-    Feed could not be converted, probably not a valid RSS feed.<br>
-    <small><a href="#">Open feed in a new tab</a></small>
-  </div>
+    {{#each pages}}
+      <li class="page-item {{#if active}}active{{/if}}">
+        <a class="page-link" href="#" data-page="{{number}}">{{number}}</a>
+      </li>
+    {{/each}}
   
-  <!-- Feed (Show no more than 5 posts per page) -->
-  <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-    <!-- Blog title -->
-    <div class="col">
-      <div class="card shadow-sm">
-        <!-- Post thumbnail, if available -->
-        <img src="https://picsum.photos/seed/1/300/225">
-        <div class="card-body">
-          <!-- Post title -->
-          <h5>Five impactful tips to accelerate your enterprise’s innovative success today</h5>
-          <!-- Post description -->
-          <p class="card-text"><small>A webinar that innovation leaders shouldn’t miss. A survey of 217 enterprise organizations found that a staggering 23% of innovation programs fail. Many businesses don’t provide innovation managers with what they need to succeed. A lack of resources, ballooning &#8230;</small></p>
-          <p><a href="#">Read more &rarr;</a></p>
-          <div class="d-flex justify-content-between align-items-center">
-            <!-- Format date appropriately as per browser/device region format -->
-            <small class="text-muted">Dec 10, 2021</small>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Blog title -->
-    <div class="col">
-      <div class="card shadow-sm">
-        <!-- Post thumbnail, if available -->
-        <img src="https://picsum.photos/seed/1/300/225">
-        <div class="card-body">
-          <!-- Post title -->
-          <h5>Five impactful tips to accelerate your enterprise’s innovative success today</h5>
-          <!-- Post description -->
-          <p class="card-text"><small>A webinar that innovation leaders shouldn’t miss. A survey of 217 enterprise organizations found that a staggering 23% of innovation programs fail. Many businesses don’t provide innovation managers with what they need to succeed. A lack of resources, ballooning &#8230;</small></p>
-          <p><a href="#">Read more &rarr;</a></p>
-          <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted">Dec 10, 2021</small>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Blog title -->
-    <div class="col">
-      <div class="card shadow-sm">
-        <!-- Post thumbnail, if available -->
-        <img src="https://picsum.photos/seed/1/300/225">
-        <div class="card-body">
-          <!-- Post title -->
-          <h5>Five impactful tips to accelerate your enterprise’s innovative success today</h5>
-          <!-- Post description -->
-          <p class="card-text"><small>A webinar that innovation leaders shouldn’t miss. A survey of 217 enterprise organizations found that a staggering 23% of innovation programs fail. Many businesses don’t provide innovation managers with what they need to succeed. A lack of resources, ballooning &#8230;</small></p>
-          <p><a href="#">Read more &rarr;</a></p>
-          <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted">Dec 10, 2021</small>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Blog title -->
-    <div class="col">
-      <div class="card shadow-sm">
-        <!-- Post thumbnail, if available -->
-        <img src="https://picsum.photos/seed/1/300/225">
-        <div class="card-body">
-          <!-- Post title -->
-          <h5>Five impactful tips to accelerate your enterprise’s innovative success today</h5>
-          <!-- Post description -->
-          <p class="card-text"><small>A webinar that innovation leaders shouldn’t miss. A survey of 217 enterprise organizations found that a staggering 23% of innovation programs fail. Many businesses don’t provide innovation managers with what they need to succeed. A lack of resources, ballooning &#8230;</small></p>
-          <p><a href="#">Read more &rarr;</a></p>
-          <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted">Dec 10, 2021</small>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Blog title -->
-    <div class="col">
-      <div class="card shadow-sm">
-        <!-- Post thumbnail, if available -->
-        <img src="https://picsum.photos/seed/1/300/225">
-        <div class="card-body">
-          <!-- Post title -->
-          <h5>Five impactful tips to accelerate your enterprise’s innovative success today</h5>
-          <!-- Post description -->
-          <p class="card-text"><small>A webinar that innovation leaders shouldn’t miss. A survey of 217 enterprise organizations found that a staggering 23% of innovation programs fail. Many businesses don’t provide innovation managers with what they need to succeed. A lack of resources, ballooning &#8230;</small></p>
-          <p><a href="#">Read more &rarr;</a></p>
-          <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted">Dec 10, 2021</small>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-  </div>
-</div>
+    {{#if hasNext}}
+      <li class="page-item">
+        <a class="page-link" href="#" data-page="{{next}}">Next</a>
+      </li>
+    {{/if}}
+  </script>
 
-<!-- Pagination -->
-<section class="py-5 text-center container">
-  <div class="row py-lg-5">
-    <nav>
-      <ul class="pagination">
-        <li class="page-item disabled">
-          <a class="page-link">Previous</a>
-        </li>
-        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-        <li class="page-item">
-          <a class="page-link" href="#">2</a>
-        </li>
-        <li class="page-item"><a class="page-link" href="#">3</a></li>
-        <li class="page-item">
-          <a class="page-link" href="#">Next</a>
-        </li>
-      </ul>
-    </nav>    
-  </div>
-</section>
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.7/dist/handlebars.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
 
   <script>
-    /* You can use https://rss2json.com/ to load the RSS feeds */
+    $(function () {
+      const $feed = $('#feed-container');
+      const $loading = $('#loading');
+      const $error = $('#error');
+      const $errorLink = $('#error-link');
+      const $pagination = $('#pagination');
 
+      const FEEDS = {};
+      const POSTS_PER_PAGE = 5;
+      let currentFeed = '';
+      let currentPage = 1;
+
+      const feedTemplate = Handlebars.compile($('#feed-template').html());
+      const paginationTemplate = Handlebars.compile($('#pagination-template').html());
+
+      $('#feed-buttons').on('click', 'button', function () {
+        const url = $(this).data('url');
+        if (url !== currentFeed) {
+          currentFeed = url;
+          currentPage = 1;
+          loadFeed(url);
+        }
+      });
+
+      $pagination.on('click', 'a', function (e) {
+        e.preventDefault();
+        const page = +$(this).data('page');
+        if (!isNaN(page) && page !== currentPage) {
+          currentPage = page;
+          renderFeed(currentFeed, page);
+        }
+      });
+
+      function loadFeed(url) {
+        if (FEEDS[url]) return renderFeed(url, currentPage);
+
+        showLoading();
+        hideError();
+
+        $.ajax({
+          url: 'https://api.rss2json.com/v1/api.json',
+          method: 'GET',
+          dataType: 'json',
+          data: { rss_url: url }
+        }).done(res => {
+          if (res.status === 'ok') {
+            FEEDS[url] = res.items.map(item => ({
+              title: item.title,
+              description: cleanDescription(item.description),
+              link: item.link,
+              pubDate: moment(item.pubDate).format('ll'),
+              image: item.thumbnail || ''
+            }));
+            renderFeed(url, currentPage);
+          } else {
+            showError(url);
+          }
+        }).fail(() => showError(url)).always(hideLoading);
+      }
+
+      function renderFeed(url, page) {
+        const allPosts = FEEDS[url];
+        const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
+        const posts = _.slice(allPosts, (page - 1) * POSTS_PER_PAGE, page * POSTS_PER_PAGE);
+
+        $feed.html(feedTemplate({ posts }));
+        renderPagination(page, totalPages);
+      }
+
+      function renderPagination(page, totalPages) {
+        const pages = _.range(1, totalPages + 1).map(p => ({
+          number: p,
+          active: p === page
+        }));
+
+        const data = {
+          hasPrev: page > 1,
+          prev: page - 1,
+          hasNext: page < totalPages,
+          next: page + 1,
+          pages: pages
+        };
+
+        $pagination.html(paginationTemplate(data));
+      }
+
+      function showLoading() { $loading.removeClass('visually-hidden'); }
+      function hideLoading() { $loading.addClass('visually-hidden'); }
+      function showError(url) {
+        $error.removeClass('visually-hidden');
+        $errorLink.attr('href', url);
+      }
+      function hideError() { $error.addClass('visually-hidden'); }
+      function cleanDescription(html) {
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = html;
+
+        // Remove all <img>, <style>, <script>, and inline styles
+        tempDiv.querySelectorAll("img, style, script").forEach(el => el.remove());
+
+        // Optional: clean inline styles
+        tempDiv.querySelectorAll("*").forEach(el => el.removeAttribute("style"));
+
+        return tempDiv.innerHTML;
+      }
+    });
   </script>
 </body>
+
 </html>
